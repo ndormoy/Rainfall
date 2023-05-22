@@ -1,0 +1,6 @@
+https://www.0x0ff.info/2015/buffer-overflow-gdb-part1/
+https://www.0x0ff.info/2015/buffer-overflow-gdb-part-2/
+https://www.0x0ff.info/2015/buffer-overflow-gdb-part-3/
+https://wiremask.eu/tools/buffer-overflow-pattern-generator/
+
+ Nous allons de nouveau utiliser l’adresse de la fonction C getchar() qui s’écrit en little endian ainsi \xe0\x6d\xe7\xf7 :

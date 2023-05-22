@@ -1,0 +1,27 @@
+We try to execute the binary, but everytime we read on the standard input.
+So ghidra again !
+
+scp -r -P 4242 level1@192.168.56.3:/home/user/level1 .
+
+void main(void)
+
+{
+  char local_50 [76]; // This line declares a character array named local_50 with a size of 76 bytes. This array can hold up to 75 characters, leaving one byte for the null terminator.
+  
+  gets(local_50); // The gets() function is called with local_50 as its argument.
+  return;
+}
+
+We see that the gets() function is considered unsafe because it does not perform any bounds checking, which can lead to buffer overflow vulnerabilities.
+And at the beggining we saw this :
+:No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/level1/level1
+
+Afer some research No canary found: A "canary" is a security mechanism used to detect buffer overflows.
+It involves placing a random value (canary) between local variables and the return address on the stack.
+If a buffer overflow occurs and overwrites the canary, it can be detected before any damage is done.
+"No canary found" means that the binary does not include this protection.
+
+i tryed with input : aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Segmentation fault (core dumped)
+
+hihihi. Now we have to find, how can we use that
