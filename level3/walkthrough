@@ -90,7 +90,8 @@ We are going to print the stack with %x and we will see a repetition of the same
 python -c 'print "AAAA" + "|%08x" * 8' | ./level3
 AAAA|00000200|b7fd1ac0|b7ff37d0|41414141|3830257c|30257c78|257c7838|7c783830
 
-Addresses are separated by | and the address of m is after 41414141 (AAAA), We count 4 %x so the offset is 4.
+Addresses are separated by | and the address of m is at the same position as 41414141 (AAAA), m will belong to the 4th block of memory
+, We count 4 %x so the offset is 4.
 
 Now we have the address of m and the offset so we can change the value of m to 64 and start a shell.
 1) Convert the address of m in little endian : \x8c\x98\x04\x08
