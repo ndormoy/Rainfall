@@ -412,9 +412,9 @@ void main(int param_1,int param_2)
                     // WARNING: Subroutine does not return
     _exit(1);
   }
-  this = (N *)operator_new(0x6c);
+  this = (N *)operator_new(0x6c); // 0x6c = 108
   N(this,5);
-  this_00 = (code **)operator_new(0x6c);
+  this_00 = (code **)operator_new(0x6c); //
   N((N *)this_00,6);
   setAnnotation(this,*(char **)(param_2 + 4));
   (**(code **)*this_00)(this_00,this);

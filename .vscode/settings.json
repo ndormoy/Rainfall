@@ -2,6 +2,7 @@
 	"files.associations": {
 		"walkthrough": "c",
 		"algorithm": "c",
-		"random": "c"
+		"random": "c",
+		"queue": "c"
 	}
 }
