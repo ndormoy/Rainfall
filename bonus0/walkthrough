@@ -1,0 +1,25 @@
+Let s analyse the source code : 
+
+We have a bufer of 42 bytes : s[42]
+
+
+ltrace ./bonus0
+__libc_start_main(0x80485a4, 1, 0xbffff7f4, 0x80485d0, 0x8048640 <unfinished ...>
+puts(" - " - 
+)                                                                       = 4
+read(0, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"..., 4096)                              = 70
+strchr("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"..., '\n')                               = "\n"
+strncpy(0xbffff6d8, "aaaaaaaaaaaaaaaaaaaa", 20)                                   = 0xbffff6d8
+puts(" - " - 
+)                                                                       = 4
+read(0, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"..., 4096)                              = 73
+strchr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"..., '\n')                               = "\n"
+strncpy(0xbffff6ec, "bbbbbbbbbbbbbbbbbbbb", 20)                                   = 0xbffff6ec
+strcpy(0xbffff726, "aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbb"...)                         = 0xbffff726
+strcat("aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbb"..., "bbbbbbbbbbbbbbbbbbbb\364\017\375\267") = "aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbb"...
+puts("aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbb"...aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb??? bbbbbbbbbbbbbbbbbbbb???
+)                                       = 70
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
