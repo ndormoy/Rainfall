@@ -122,11 +122,11 @@ int frame_dummy()
 //----- (080484B4) --------------------------------------------------------
 char *__cdecl p(char *dest, char *s)
 {
-  char buf[4104]; // [esp+10h] [ebp-1008h] BYREF
+  char buf[4096]; // [esp+10h] [ebp-1008h] BYREF
 
   puts(s);
   read(0, buf, 0x1000u); // 4096
-  *strchr(buf, 10) = 0;
+  *strchr(buf, 10) = 0; // '/n'
   return strncpy(dest, buf, 0x14u); // 20
 }
 

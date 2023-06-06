@@ -23,3 +23,25 @@ puts("aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbb"...aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbb
 )                                       = 70
 --- SIGSEGV (Segmentation fault) ---
 +++ killed by SIGSEGV +++
+
+After a few tests and analyzing the code, we can see that the buffer overflow is done on the strncpy function which copies 20 bytes into a 20 byte buffer in the pp function.
+We notice that if we put  20 bytes or more in the first input, the second input will be copied in the buffer and the program will crash.
+
+bonus0@RainFall:~$ ./bonus0
+ - 
+aaaaaaaaaaaaaaaaaaaa			--> 20 bytes
+ - 
+bbbbbbbbbbbbbbbbbbb				--> 19 bytes
+aaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbb bbbbbbbbbbbbbbbbbbb
+Segmentation fault (core dumped)
+
+If we put 19 bytes in the first input and more than 19 bytes in the second input, the program will not crash, but we have some overflow :
+bonus0@RainFall:~$ ./bonus0
+ - 
+aaaaaaaaaaaaaaaaaaa
+ - 
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+aaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbb???
+
+
+So if we can put a shell code in the second input, we maybe can execute it for example in a return address.
