@@ -72,7 +72,8 @@ int max in c : -2147483648
 
 For my test with int min i used my testunderflow.c to test the value of int min etc...
 
-We want to have 44 with a negative value of int So :
+We want to have 44 with a negative value of int because i have my 40 bytes + 4 bytes of the value of v5 and we can t enter a number greater than 9 in argv[1].
+So :
 -2147483648 = -2147483648
 -2147483649 = 2147483647
 
