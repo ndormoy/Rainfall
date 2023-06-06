@@ -76,7 +76,11 @@ We use python to calculate the offset between auth and service.
 So we have an offset of 16 bytes between auth and service.
 
 We have something like this :
-service        auth
+service        auth							--->> cést l inverse changer ca
+       <------>
+		  16
+
+auth           service
        <------>
 		  16
 

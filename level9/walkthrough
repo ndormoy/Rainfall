@@ -18,6 +18,12 @@ Like this we found the offset 0x41366441 = 108
 2) Like in level2 we need to inject shellcode and overflow the buffer.
 Here we need to overflow with 108 --> The space between n1 and n2.
 So if we overflow n1, we will overwrite n2, and we will be able to call the shellcode injected because n2 is called at the end of the program (in the return statement).
+To summerize : 
+return ((n2_ptr)->operator+(*n1_ptr));
+The operator+ of n2_ptr is called,
+if we overflow n1_ptr and overwrite this operator+ of n2, we will be able to call our shellcode --> WIN
+We are in the heap but our variable are allocated contiguously so we can overflow n1 and overwrite n2.
+
 
 let s disassemble the main function :
 
