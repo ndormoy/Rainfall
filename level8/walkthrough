@@ -79,8 +79,7 @@ We have something like this :
 
 auth        service
     <------>
-		  16
-
+		16
 
 So we have to write
 
@@ -93,9 +92,8 @@ service aaaaaaaaaaaaaaa
 We start after the e of service because of this line : service = strdup(buffer + 7);
 We strdup the content of buffer + 7.
 
-
 level8@RainFall:~$ ./level8
-(nil), (nil) 
+(nil), (nil)
 auth 
 0x804a008, (nil) 
 service aaaaaaaaaaaaaaa			--->	(We can write more a if we want, but not less)

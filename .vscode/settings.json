@@ -26,6 +26,10 @@
 		"tuple": "c",
 		"type_traits": "c",
 		"vector": "c",
-		"array": "c"
+		"array": "c",
+		"numeric": "c",
+		"*.tcc": "c",
+		"compare": "c",
+		"mutex": "c"
 	}
 }

@@ -2,22 +2,19 @@
 #include <cstring>
 
 class N {
-	public:
+	private:
 		int nb;
-		char annotation[100];
-
+		char tab[100];
+	public:
 		N(int n) {
 			nb = n;
 		}
-
 		void setAnnotation(char *str) {
-			memcpy(annotation, str, strlen(str));
+			memcpy(tab, str, strlen(str));
 		}
-
 		virtual int operator+(N &n) {
 			return (nb + n.nb);
 		}
-
 		virtual int operator-(N &n) {
 			return (nb - n.nb);
 		}
