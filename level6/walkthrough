@@ -79,6 +79,15 @@ info functions
 x: This is the command in GDB used for examining memory.
 30 indicates the number of units to display. In this case, it will display 30 memory units.
 x specifies the format of the memory units to be displayed. In this case, it will display the memory contents in hexadecimal format.
+So we print the memory of the malloc in the strcpy.
+
+level6@RainFall:~$ ltrace ./level6
+__libc_start_main(0x804847c, 1, 0xbffff7f4, 0x80484e0, 0x8048550 <unfinished ...>
+malloc(64)                                                                        = 0x0804a008
+malloc(4)                                                                         = 0x0804a050
+strcpy(0x0804a008, NULL <unfinished ...>
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
 
 (gdb) x/30x 0x0804a008
 
