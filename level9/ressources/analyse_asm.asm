@@ -146,7 +146,14 @@ _ZN1NC2Ei
 	-------------------------------------------------
 	Based on this disassembled code, it appears that the function _ZN1NC2Ei is likely the constructor of a class N.
 	It initializes some member variables and assigns values to them.
-
+	-->		N(int arg) {
+			*(int*)this = 0x8048848;	--> Address of the variable
+			this->nb = arg;				--> number that we put in N. (Like this N(5) for example)
+			}
+	So We have something like this :
+	--> N(int n) {
+			nb = n;
+		}
 
 _ZN1N13setAnnotationEPc
 
@@ -209,7 +216,7 @@ _ZN1N13setAnnotationEPc
 	The arguments for memcpy are already on the stack.
 	This function is likely used to copy data from one memory location to another.
 
-	--> memcpy(tab, str, strlen(str));
+	--> memcpy(tab, str, strlen(str)); ( look at the source_hex.c)
 	-------------------------------------------------
 
 	0x08048738 <+42>:   leave  
