@@ -121,7 +121,8 @@ Like this we found the offset 0x41366441 = 108 (https://projects.jason-rush.com/
 Here we need to overflow with 108 --> The space between n1 and n2.
 So if we overflow n1, we will overwrite the n2 operator+, and we will be able to call the shellcode injected
 because n2->operator+ is called at the end of the program (in the return statement).
-(We know that the heap is chucked for class in c++)
+We know that the heap is chucked for class in c++, because it use malloc, and malloc allocate more memory than he need.
+We have two little allocations so our two allocations are contiguous in the memory.
 To summerize : 
 return ((n2_ptr)->operator+(*n1_ptr));       --> return (n2_ptr)->shellcode
 The operator+ of n2_ptr is called,
@@ -211,6 +212,8 @@ We take back the shellcode from level2 (execve(/bin/sh)): \x31\xc0\x99\x50\x68\x
 This shellcode : 24 bytes.
 
 6) Write the good payload :
+
+edx has to be an address because he is going to be derefenced. So we put the address of the shellcode in edx.
 
 Offset = 108 bytes - 24 bytes - 4 bytes = 80 bytes --> "\x90"*80
 
