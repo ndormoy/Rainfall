@@ -1,3 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 undefined4 main(int param_1,int param_2)
 {
 	undefined4 uVar1;
