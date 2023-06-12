@@ -8,12 +8,12 @@ uint32_t language = 0;
 int32_t greetuser()
 {
 	uint32_t eax = language;
-	int32_t var_4c;
+	char var_4c[72];
 
 	if (eax == 1)
 	{
 		char message[] = "Hyvää päivää ";
-		__builtin_memcpy(var_4c, message, 0x12);
+		__builtin_strcpy(var_4c, message);
 		char var_3a_1 = 0;
 	}
 	else if (eax == 2)
@@ -24,7 +24,7 @@ int32_t greetuser()
 	else if (eax == 0)
 	{
 		char message[] = "Hello ";
-		__builtin_strncpy(var_4c, message, 7);
+		__builtin_strcpy(var_4c, message);
 	}
 
 	strcat(&var_4c, &arg_4);
@@ -73,7 +73,6 @@ int32_t main(int32_t argc, char** argv, char** envp)
 				}
 			}
 		}
-
 		__builtin_memcpy(&var_b0, &var_60, 0x4c);
 		eax = greetuser();
 	}

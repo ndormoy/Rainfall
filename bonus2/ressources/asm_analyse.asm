@@ -202,7 +202,7 @@ greetuser:
 	The jump targets (0x80484ba, 0x80484e9, 0x804850a) represent different code paths based on the value of %eax.
 
 	0x0804849d <+25>:	mov    $0x8048710,%edx
-	0x080484a2 <+30>:	lea    -0x48(%ebp),%eax
+	0x080484a2 <+30>:	lea    -0x48(%ebp),%eax		--> -72 bytes
 	0x080484a5 <+33>:	mov    (%edx),%ecx
 	0x080484a7 <+35>:	mov    %ecx,(%eax)
 	0x080484a9 <+37>:	movzwl 0x4(%edx),%ecx
