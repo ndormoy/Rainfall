@@ -3,3 +3,5 @@ https://projects.jason-rush.com/tools/buffer-overflow-eip-offset-string-generato
 https://infosecwriteups.com/expdev-exploit-exercise-protostar-stack-6-ef75472ec7c6
 
 https://www.exploit-db.com/exploits/42428
+
+https://projects.jason-rush.com/tools/buffer-overflow-eip-offset-string-generator/
